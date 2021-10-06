@@ -51,8 +51,3 @@ signs:
 # draft: true
 changelog:
   skip: true
-github_urls:
-  api: https://github.krafton.com/api/v3/
-  upload: https://github.krafton.com/api/uploads/
-  download: https://github.krafton.com/
-  skip_tls_verify: false

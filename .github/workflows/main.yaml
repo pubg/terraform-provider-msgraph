@@ -5,7 +5,7 @@ on:
       - 'v*'
 jobs:
   goreleaser:
-    runs-on: ["self-hosted", "linux", "DevOps"]
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -29,5 +29,3 @@ jobs:
           args: release --rm-dist
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-          # GitHub sets this automatically
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}

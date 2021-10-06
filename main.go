@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 	"log"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 
 	if debugMode {
 		// TODO: update this string with the full name of your provider as used in your configs
-		err := plugin.Debug(context.Background(), "github.krafton.com/xtrm/msgraph", opts)
+		err := plugin.Debug(context.Background(), "pubg/msgraph", opts)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
