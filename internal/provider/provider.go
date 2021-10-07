@@ -32,6 +32,9 @@ type ServiceRegistration interface {
 
 	// SupportedResources returns the supported Resources supported by this Service
 	SupportedResources() map[string]*schema.Resource
+
+	// SupportedResources returns the supported Resources supported by this Service
+	SupportedDataSources() map[string]*schema.Resource
 }
 
 // Provider returns a schema.Provider.
@@ -50,14 +53,20 @@ func Provider() *schema.Provider {
 	}
 
 	resources := make(map[string]*schema.Resource)
+	dataSources := make(map[string]*schema.Resource)
 	for _, service := range SupportedServices() {
 		debugLog("[DEBUG] Registering Resources for %q..", service.Name())
 		for k, v := range service.SupportedResources() {
 			if existing := resources[k]; existing != nil {
 				panic(fmt.Sprintf("An existing Resource exists for %q", k))
 			}
-
 			resources[k] = v
+		}
+		for k, v := range service.SupportedDataSources() {
+			if existing := dataSources[k]; existing != nil {
+				panic(fmt.Sprintf("An existing DataSource exists for %q", k))
+			}
+			dataSources[k] = v
 		}
 	}
 
@@ -162,8 +171,8 @@ func Provider() *schema.Provider {
 			},
 		},
 
-		ResourcesMap: resources,
-		//DataSourcesMap: dataSources,
+		ResourcesMap:   resources,
+		DataSourcesMap: dataSources,
 	}
 
 	p.ConfigureContextFunc = providerConfigure(p)

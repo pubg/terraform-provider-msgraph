@@ -13,8 +13,8 @@ import (
 
 func appRoleAssignmentResource() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: appRoleAssignmentResourceCreateUpdate,
-		UpdateContext: appRoleAssignmentResourceCreateUpdate,
+		CreateContext: appRoleAssignmentResourceCreate,
+		UpdateContext: appRoleAssignmentResourceUpdate,
 		ReadContext:   appRoleAssignmentResourceRead,
 		DeleteContext: appRoleAssignmentResourceDelete,
 
@@ -32,45 +32,41 @@ func appRoleAssignmentResource() *schema.Resource {
 			},
 
 			"app_role_id": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"principal_display_name": {
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateDiagFunc: validate.NoEmptyStrings,
-			},
-
-			"principal_type": {
-				Type:             schema.TypeString,
-				Required:         true,
+				ForceNew:         true,
 				ValidateDiagFunc: validate.NoEmptyStrings,
 			},
 
 			"principal_id": {
 				Type:             schema.TypeString,
 				Required:         true,
+				ForceNew:         true,
 				ValidateDiagFunc: validate.NoEmptyStrings,
 			},
 
 			"resource_id": {
 				Type:             schema.TypeString,
 				Required:         true,
+				ForceNew:         true,
 				ValidateDiagFunc: validate.NoEmptyStrings,
 			},
 
-			"resource_display_name": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ValidateDiagFunc: validate.NoEmptyStrings,
+			"tolerance_duplicate": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 		},
 	}
 }
 
-func appRoleAssignmentResourceCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return appRoleAssignmentResourceCreateUpdateMsGraph(ctx, d, meta)
+func appRoleAssignmentResourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return appRoleAssignmentResourceCreateMsGraph(ctx, d, meta)
+}
+
+func appRoleAssignmentResourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return appRoleAssignmentResourceUpdateMsGraph(ctx, d, meta)
 }
 
 func appRoleAssignmentResourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

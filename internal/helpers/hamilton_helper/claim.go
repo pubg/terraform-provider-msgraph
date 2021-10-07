@@ -1,4 +1,4 @@
-package hamilton_jwt
+package hamilton_helper
 
 import (
 	"encoding/base64"

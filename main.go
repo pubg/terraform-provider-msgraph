@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
-
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+	"log"
+	"terraform-provider-msgraph/internal/provider"
 )
 
 func main() {
@@ -14,7 +15,7 @@ func main() {
 	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
-	opts := &plugin.ServeOpts{ProviderFunc: Provider}
+	opts := &plugin.ServeOpts{ProviderFunc: ProviderFunc}
 
 	if debugMode {
 		// TODO: update this string with the full name of your provider as used in your configs
@@ -26,4 +27,8 @@ func main() {
 	}
 
 	plugin.Serve(opts)
+}
+
+func ProviderFunc() *schema.Provider {
+	return provider.Provider()
 }

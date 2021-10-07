@@ -28,19 +28,21 @@ type ClientOptions struct {
 	MsGraphAuthorizer auth.Authorizer // TODO: rename in v2.0
 }
 
-func (o ClientOptions) ConfigureClient(c *msgraph.Client, ar *autorest.Client) {
+func (o ClientOptions) ConfigureMsGraphClient(c *msgraph.Client) {
 	if o.MsGraphAuthorizer != nil {
 		c.Authorizer = o.MsGraphAuthorizer
 		c.Endpoint = o.Environment.MsGraph.Endpoint
-		c.UserAgent = o.userAgent(c.UserAgent)
+		c.UserAgent = o.UserAgent(c.UserAgent)
 	}
-
-	ar.Authorizer = o.AadGraphAuthorizer
-	ar.Sender = sender.BuildSender("AzureAD")
-	ar.UserAgent = o.userAgent(ar.UserAgent)
 }
 
-func (o ClientOptions) userAgent(sdkUserAgent string) (userAgent string) {
+func (o ClientOptions) ConfigureAadClient(ar *autorest.Client) {
+	ar.Authorizer = o.AadGraphAuthorizer
+	ar.Sender = sender.BuildSender("AzureAD")
+	ar.UserAgent = o.UserAgent(ar.UserAgent)
+}
+
+func (o ClientOptions) UserAgent(sdkUserAgent string) (userAgent string) {
 	tfUserAgent := fmt.Sprintf("HashiCorp Terraform/%s (+https://www.terraform.io) Terraform Plugin SDK/%s", o.TerraformVersion, meta.SDKVersionString())
 	providerUserAgent := fmt.Sprintf("%s terraform-provider-azuread/%s", tfUserAgent, version.ProviderVersion)
 	userAgent = strings.TrimSpace(fmt.Sprintf("%s %s", sdkUserAgent, providerUserAgent))

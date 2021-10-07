@@ -23,13 +23,3 @@ func (e CredentialError) Attr() string {
 func (e CredentialError) Error() string {
 	return e.str
 }
-
-type NoSuchAssignmentError struct{}
-
-func (e NoSuchAssignmentError) Error() string {
-	return "No such assignment"
-}
-
-func ErrNoSuchAssignment() error {
-	return NoSuchAssignmentError{}
-}

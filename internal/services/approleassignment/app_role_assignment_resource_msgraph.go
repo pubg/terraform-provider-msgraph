@@ -2,12 +2,13 @@ package approleassignment
 
 import (
 	"context"
-	"errors"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/manicminer/hamilton/msgraph"
 	"github.com/manicminer/hamilton/odata"
 	"log"
+	"strings"
+	"terraform-provider-msgraph/internal/helpers/hamilton_helper"
 
 	"terraform-provider-msgraph/internal/clients"
 	helpers "terraform-provider-msgraph/internal/helpers/msgraph"
@@ -15,39 +16,39 @@ import (
 	"terraform-provider-msgraph/internal/utils"
 )
 
-const appRoleAssignmentResourceName = "msgraph_app_role_assignment"
+var duplicatedPrefix = "duplicated_"
 
-func appRoleAssignmentResourceCreateUpdateMsGraph(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*clients.Client).AppRoleAssignment.MsClient
+func appRoleAssignmentResourceCreateMsGraph(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*clients.Client).ServicePrincipalClient.MsGraphClient
 
 	properties := msgraph.AppRoleAssignment{
-		AppRoleId:           utils.String(d.Get("app_role_id").(string)),
-		PrincipalId:         utils.String(d.Get("principal_id").(string)),
-		PrincipalType:       utils.String(d.Get("principal_type").(string)),
-		ResourceDisplayName: utils.String(d.Get("resource_display_name").(string)),
-		ResourceId:          utils.String(d.Get("resource_id").(string)),
+		AppRoleId:   utils.String(d.Get("app_role_id").(string)),
+		PrincipalId: utils.String(d.Get("principal_id").(string)),
+		ResourceId:  utils.String(d.Get("resource_id").(string)),
 	}
 
 	appRoleAssignment, _, err := client.AssignAppRoleForResource(ctx, *properties.PrincipalId, *properties.ResourceId, *properties.AppRoleId)
 	if err != nil {
-		return tf.ErrorDiagF(err, "Assigning role %s to %s %s", *properties.AppRoleId, *properties.PrincipalType, *properties.PrincipalDisplayName)
+		if d.Get("tolerance_duplicate").(bool) {
+			if strings.Contains(err.Error(), "Permission being assigned already exists on the object") {
+				d.SetId(duplicatedPrefix + utils.RandStringBytes(32))
+				d.Set("app_role_id", properties.AppRoleId)
+				d.Set("principal_id", properties.PrincipalId)
+				d.Set("resource_id", properties.ResourceId)
+				return nil
+			}
+		}
+		return tf.ErrorDiagF(err, "Assigning role %+v", properties)
 	}
 
 	d.SetId(*appRoleAssignment.Id)
-
 	_, err = helpers.WaitForCreationReplication(ctx, func() (interface{}, int, error) {
-		pGroupRoles, status, err := client.ListAppRoleAssignments(ctx, *properties.ResourceId, odata.Query{})
+		pGroupRole, status, err := hamilton_helper.GetAppRoleAssignment(client, ctx, *properties.ResourceId, d.Id(), odata.Query{})
 		if err != nil {
 			return nil, status, err
 		}
-		for _, value := range *pGroupRoles {
-			if *value.Id == *appRoleAssignment.Id {
-				return appRoleAssignment, status, nil
-			}
-		}
-		return nil, 404, errors.New("App role assignment not yet created")
+		return pGroupRole, status, nil
 	})
-
 	if err != nil {
 		return tf.ErrorDiagF(err, "Waiting for AppRoleAssignment with object ID: %q", *appRoleAssignment.Id)
 	}
@@ -55,29 +56,32 @@ func appRoleAssignmentResourceCreateUpdateMsGraph(ctx context.Context, d *schema
 	return appRoleAssignmentResourceReadMsGraph(ctx, d, meta)
 }
 
+func appRoleAssignmentResourceUpdateMsGraph(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return nil
+}
+
 func appRoleAssignmentResourceReadMsGraph(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*clients.Client).AppRoleAssignment.MsClient
+	if d.Get("tolerance_duplicate").(bool) {
+		if strings.HasPrefix(d.Id(), duplicatedPrefix) {
+			return nil
+		}
+	}
+
+	client := meta.(*clients.Client).ServicePrincipalClient.MsGraphClient
 
 	resourceId := utils.String(d.Get("resource_id").(string))
 
 	getAppRoleAssignment := func() (msgraph.AppRoleAssignment, error) {
-		pGroupRoles, _, err := client.ListAppRoleAssignments(ctx, *resourceId, odata.Query{})
+		pGroupRole, _, err := hamilton_helper.GetAppRoleAssignment(client, ctx, *resourceId, d.Id(), odata.Query{})
 		if err != nil {
 			return msgraph.AppRoleAssignment{}, err
 		}
-
-		for _, value := range *pGroupRoles {
-			if *value.Id == d.Id() {
-				return value, nil
-			}
-		}
-
-		return msgraph.AppRoleAssignment{}, helpers.ErrNoSuchAssignment()
+		return *pGroupRole, nil
 	}
 
 	appRoleAssignment, err := getAppRoleAssignment()
 
-	if !d.IsNewResource() && errors.Is(err, helpers.ErrNoSuchAssignment()) {
+	if !d.IsNewResource() && err != nil {
 		log.Printf("[WARN] App Role Assignment (%q) not found, removing from state", d.Id())
 		d.SetId("")
 		return nil
@@ -89,17 +93,19 @@ func appRoleAssignmentResourceReadMsGraph(ctx context.Context, d *schema.Resourc
 
 	tf.Set(d, "id", appRoleAssignment.Id)
 	tf.Set(d, "app_role_id", appRoleAssignment.AppRoleId)
-	tf.Set(d, "principal_display_name", appRoleAssignment.PrincipalDisplayName)
-	tf.Set(d, "principal_type", appRoleAssignment.PrincipalType)
 	tf.Set(d, "principal_id", appRoleAssignment.PrincipalId)
 	tf.Set(d, "resource_id", appRoleAssignment.ResourceId)
-	tf.Set(d, "resource_display_name", appRoleAssignment.ResourceDisplayName)
-
 	return nil
 }
 
 func appRoleAssignmentResourceDeleteMsGraph(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*clients.Client).AppRoleAssignment.MsClient
+	if d.Get("tolerance_duplicate").(bool) {
+		if strings.HasPrefix(d.Id(), duplicatedPrefix) {
+			return nil
+		}
+	}
+
+	client := meta.(*clients.Client).ServicePrincipalClient.MsGraphClient
 
 	resourceId := utils.String(d.Get("resource_id").(string))
 	if _, err := client.RemoveAppRoleAssignment(ctx, *resourceId, d.Id()); err != nil {
