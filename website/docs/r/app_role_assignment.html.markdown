@@ -23,7 +23,7 @@ resource "msgraph_app_role_assignment" "example" {
    # Application Role Id
    app_role_id = "<uuid>"
 
-  tolerance_duplicate = true
+   tolerance_duplicate = true
 }
 ```
 
