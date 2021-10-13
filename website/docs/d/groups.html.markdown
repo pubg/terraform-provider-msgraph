@@ -1,36 +1,40 @@
 ---
 layout: "msgraph"
-subcategory: "ADGroup"
+subcategory: "Groups"
 page_title: "MsGraph: msgraph_groups"
 description: |-
-  Get AWS CloudTrail Service Account ID for storing trail data in S3.
+  Get nested groups.
 ---
 
 # Data Source: msgraph_groups
 
-Use this data source to get the ARN of a certificate in AWS Certificate
-Manager (ACM), you can reference
-it by domain without having to hard code the ARNs as input.
+The data source can get nested groups of top group.
+
+You can assign role to all groups belong to big organization or division.
 
 ## Example Usage
 
 ```terraform
-# Find a certificate that is issued
-data "aws_acm_certificate" "issued" {
-  domain   = "tf.example.com"
-  statuses = ["ISSUED"]
+data "msgraph_groups" "my_groups" {
+  group_id             = "4729d0a8-2cea-446b-95fb-43c7e8973816"
+  listup_nested_groups = true
 }
 
-# Find a certificate issued by (not imported into) ACM
-data "aws_acm_certificate" "amazon_issued" {
-  domain      = "tf.example.com"
-  types       = ["AMAZON_ISSUED"]
-  most_recent = true
-}
+resource "msgraph_app_role_assignment" "my_assign" {
+  for_each = toset(data.msgraph_groups.my_groups.group_ids)
 
-# Find a RSA 4096 bit certificate
-data "aws_acm_certificate" "rsa_4096" {
-  domain    = "tf.example.com"
-  key_types = ["RSA_4096"]
+  principal_id = each.key
+  resource_id = azuread_service_principal.my_app.object_id
+  app_role_id = azuread_application_app_role.my_role.role_id
 }
 ```
+
+## Arguments Reference
+
+* `group_id` - (Required) The Group's UUID.
+* `listup_nested_groups` - (Required) Bool flag of search nested groups. 
+
+## Attributes Reference
+
+* `group_ids` - Type: String List, list of nested or single group ids.
+
