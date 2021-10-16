@@ -36,5 +36,5 @@ resource "msgraph_app_role_assignment" "my_assign" {
 
 ## Attributes Reference
 
-* `group_ids` - Type: String List, list of nested or single group ids.
-* `user_ids` - Type: String List, list of nested or single user ids.
+* `group_ids` - Type: String List, list of group ids.
+* `user_ids` - Type: String List, list of group's member user ids.
