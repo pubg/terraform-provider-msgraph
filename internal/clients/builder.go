@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"fmt"
+
 	"github.com/manicminer/hamilton/auth"
 
 	"github.com/hashicorp/go-azure-helpers/authentication"
@@ -91,7 +92,7 @@ func (b *ClientBuilder) Build(ctx context.Context) (*Client, error) {
 		}
 
 		// Obtain the tenant ID from Azure CLI
-		if cli, ok := o.MsGraphAuthorizer.(auth.AzureCliAuthorizer); ok {
+		if cli, ok := o.MsGraphAuthorizer.(*auth.AzureCliAuthorizer); ok {
 			if cli.TenantID == "" {
 				return nil, fmt.Errorf("azure-cli could not determine tenant ID to use")
 			}

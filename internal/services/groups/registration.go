@@ -1,4 +1,4 @@
-package data_source_msgraph_groups
+package groups
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
