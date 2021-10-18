@@ -16,8 +16,8 @@ You can assign role to all groups belong to big organization or division.
 
 ```terraform
 data "msgraph_groups" "my_groups" {
-  group_id             = "4729d0a8-2cea-446b-95fb-43c7e8973816"
-  listup_nested_groups = true
+  group_id           = "4729d0a8-2cea-446b-95fb-43c7e8973816"
+  max_traverse_depth = 3
 }
 
 resource "msgraph_app_role_assignment" "my_assign" {
@@ -32,9 +32,9 @@ resource "msgraph_app_role_assignment" "my_assign" {
 ## Arguments Reference
 
 * `group_id` - (Required) The Group's UUID.
-* `listup_nested_groups` - (Required) Bool flag of search nested groups. 
+* `max_traverse_depth` - (Optional) Max group traverse depth 0 means infinite. Default is 0.  
 
 ## Attributes Reference
 
-* `group_ids` - Type: String List, list of nested or single group ids.
-
+* `group_ids` - Type: String List, list of group ids.
+* `user_ids` - Type: String List, list of group's member user ids.

@@ -32,7 +32,7 @@ terraform {
 
     msgraph = {
       source = "pubg/msgraph"
-      version = "0.0.5"
+      version = "0.0.6"
     }
   }
 }
