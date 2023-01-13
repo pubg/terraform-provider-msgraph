@@ -1,4 +1,4 @@
-package approleassignment
+package apps
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -8,13 +8,13 @@ type Registration struct{}
 
 // Name is the name of this Service
 func (r Registration) Name() string {
-	return "App Role Assignment"
+	return "Apps"
 }
 
 // WebsiteCategories returns a list of categories which can be used for the sidebar
 func (r Registration) WebsiteCategories() []string {
 	return []string{
-		"App Role Assignment",
+		"App",
 	}
 }
 
@@ -22,6 +22,7 @@ func (r Registration) WebsiteCategories() []string {
 func (r Registration) SupportedResources() map[string]*schema.Resource {
 	return map[string]*schema.Resource{
 		"msgraph_app_role_assignment": appRoleAssignmentResource(),
+		"msgraph_app_redirect_uris":   appRedirectUris(),
 	}
 }
 

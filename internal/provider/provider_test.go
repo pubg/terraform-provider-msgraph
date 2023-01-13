@@ -53,7 +53,7 @@ func TestAccProvider_cliAuth(t *testing.T) {
 			EnableAzureCliToken: true,
 		}
 
-		return buildClient(ctx, provider, authConfig, aadBuilder, "", true)
+		return buildClient(ctx, provider, authConfig, aadBuilder, "")
 	}
 
 	d := provider.Configure(ctx, terraform.NewResourceConfigRaw(nil))
@@ -101,7 +101,7 @@ func TestAccProvider_clientCertificateAuth(t *testing.T) {
 			ClientCertPassword:   d.Get("client_certificate_password").(string),
 		}
 
-		return buildClient(ctx, provider, authConfig, aadBuilder, "", true)
+		return buildClient(ctx, provider, authConfig, aadBuilder, "")
 	}
 
 	d := provider.Configure(ctx, terraform.NewResourceConfigRaw(nil))
@@ -147,7 +147,7 @@ func TestAccProvider_clientSecretAuth(t *testing.T) {
 			ClientSecret:           d.Get("client_secret").(string),
 		}
 
-		return buildClient(ctx, provider, authConfig, aadBuilder, "", true)
+		return buildClient(ctx, provider, authConfig, aadBuilder, "")
 	}
 
 	d := provider.Configure(ctx, terraform.NewResourceConfigRaw(nil))
