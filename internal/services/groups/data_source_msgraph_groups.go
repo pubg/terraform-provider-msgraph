@@ -3,8 +3,9 @@ package groups
 import (
 	"context"
 	"fmt"
-	"terraform-provider-msgraph/internal/clients"
-	"terraform-provider-msgraph/internal/helpers/hamilton_helper"
+
+	"github.com/pubg/terraform-provider-msgraph/internal/clients"
+	"github.com/pubg/terraform-provider-msgraph/internal/helpers/hamilton_helper"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

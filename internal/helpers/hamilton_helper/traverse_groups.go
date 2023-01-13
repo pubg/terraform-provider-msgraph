@@ -72,13 +72,13 @@ func traverseNestedGroups0(tCtx *traverseContext, groupId string, currentDepth i
 	}
 
 	for _, v := range data.Members {
-		if tCtx.objectVisitCheckMap[*v.ID] {
+		if tCtx.objectVisitCheckMap[*v.ID()] {
 			continue
 		}
 
 		if *v.ODataType != odata.TypeGroup {
-			tCtx.objectVisitCheckMap[*v.ID] = true
-			err = tCtx.traverseFunc(*v.ID, *v.ODataType, err)
+			tCtx.objectVisitCheckMap[*v.ID()] = true
+			err = tCtx.traverseFunc(*v.ID(), *v.ODataType, err)
 			if err != nil {
 				return err
 			}
@@ -87,7 +87,7 @@ func traverseNestedGroups0(tCtx *traverseContext, groupId string, currentDepth i
 		if tCtx.maxTraverseDepth != 0 && tCtx.maxTraverseDepth < currentDepth+1 {
 			continue
 		}
-		err = traverseNestedGroups0(tCtx, *v.ID, currentDepth+1)
+		err = traverseNestedGroups0(tCtx, *v.ID(), currentDepth+1)
 		if err != nil {
 			return err
 		}

@@ -3,12 +3,13 @@ package approleassignment
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"terraform-provider-msgraph/internal/tf"
-	"terraform-provider-msgraph/internal/validate"
+	"github.com/pubg/terraform-provider-msgraph/internal/tf"
+	"github.com/pubg/terraform-provider-msgraph/internal/validate"
 )
 
 func appRoleAssignmentResource() *schema.Resource {

@@ -3,15 +3,16 @@ package clients
 import (
 	"context"
 	"fmt"
+
 	"github.com/Azure/azure-sdk-for-go/services/graphrbac/1.6/graphrbac"
 	"github.com/manicminer/hamilton/auth"
 	"github.com/manicminer/hamilton/environments"
 	"github.com/manicminer/hamilton/msgraph"
-	"terraform-provider-msgraph/internal/helpers/hamilton_helper"
+	"github.com/pubg/terraform-provider-msgraph/internal/helpers/hamilton_helper"
 
 	"github.com/Azure/go-autorest/autorest"
 
-	"terraform-provider-msgraph/internal/common"
+	"github.com/pubg/terraform-provider-msgraph/internal/common"
 )
 
 // Client contains the handles to all the specific Azure AD resource classes' respective clients

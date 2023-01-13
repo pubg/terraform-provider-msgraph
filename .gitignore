@@ -19,7 +19,6 @@ tf-generator/tf-generator
 
 # example
 *.json
-*.tf
 
 .idea
 dist/

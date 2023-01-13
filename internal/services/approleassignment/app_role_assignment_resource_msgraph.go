@@ -2,18 +2,19 @@ package approleassignment
 
 import (
 	"context"
+	"log"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/manicminer/hamilton/msgraph"
 	"github.com/manicminer/hamilton/odata"
-	"log"
-	"strings"
-	"terraform-provider-msgraph/internal/helpers/hamilton_helper"
+	"github.com/pubg/terraform-provider-msgraph/internal/helpers/hamilton_helper"
 
-	"terraform-provider-msgraph/internal/clients"
-	helpers "terraform-provider-msgraph/internal/helpers/msgraph"
-	"terraform-provider-msgraph/internal/tf"
-	"terraform-provider-msgraph/internal/utils"
+	"github.com/pubg/terraform-provider-msgraph/internal/clients"
+	helpers "github.com/pubg/terraform-provider-msgraph/internal/helpers/msgraph"
+	"github.com/pubg/terraform-provider-msgraph/internal/tf"
+	"github.com/pubg/terraform-provider-msgraph/internal/utils"
 )
 
 var duplicatedPrefix = "duplicated_"

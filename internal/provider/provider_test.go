@@ -3,16 +3,17 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/manicminer/hamilton/auth"
 	"os"
 	"testing"
+
+	"github.com/manicminer/hamilton/auth"
 
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"terraform-provider-msgraph/internal/clients"
+	"github.com/pubg/terraform-provider-msgraph/internal/clients"
 )
 
 func TestProvider(t *testing.T) {

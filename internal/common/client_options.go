@@ -2,17 +2,18 @@ package common
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/manicminer/hamilton/auth"
 	"github.com/manicminer/hamilton/environments"
 	"github.com/manicminer/hamilton/msgraph"
-	"os"
-	"strings"
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/hashicorp/go-azure-helpers/sender"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/meta"
 
-	"terraform-provider-msgraph/version"
+	"github.com/pubg/terraform-provider-msgraph/version"
 )
 
 type ClientOptions struct {

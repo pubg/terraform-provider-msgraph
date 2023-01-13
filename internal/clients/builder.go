@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/manicminer/hamilton/auth"
+	"github.com/manicminer/hamilton/environments"
 
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/go-azure-helpers/sender"
 
-	"terraform-provider-msgraph/internal/common"
+	"github.com/pubg/terraform-provider-msgraph/internal/common"
 )
 
 type ClientBuilder struct {
@@ -80,22 +81,20 @@ func (b *ClientBuilder) Build(ctx context.Context) (*Client, error) {
 	}
 
 	// MS Graph
-	if b.EnableMsGraph {
-		if b.AuthConfig == nil {
-			return nil, fmt.Errorf("building client: AuthConfig is nil")
-		}
+	if b.AuthConfig == nil {
+		return nil, fmt.Errorf("building client: AuthConfig is nil")
+	}
 
-		client.EnableMsGraphBeta = true
-		o.MsGraphAuthorizer, err = b.AuthConfig.NewAuthorizer(ctx, auth.MsGraph)
-		if err != nil {
-			return nil, err
-		}
+	client.EnableMsGraphBeta = true
+	o.MsGraphAuthorizer, err = b.AuthConfig.NewAuthorizer(ctx, environments.MsGraphGlobal)
+	if err != nil {
+		return nil, err
+	}
 
-		// Obtain the tenant ID from Azure CLI
-		if cli, ok := o.MsGraphAuthorizer.(*auth.AzureCliAuthorizer); ok {
-			if cli.TenantID == "" {
-				return nil, fmt.Errorf("azure-cli could not determine tenant ID to use")
-			}
+	// Obtain the tenant ID from Azure CLI
+	if cli, ok := o.MsGraphAuthorizer.(*auth.AzureCliAuthorizer); ok {
+		if cli.TenantID == "" {
+			return nil, fmt.Errorf("azure-cli could not determine tenant ID to use")
 		}
 	}
 

@@ -1,8 +1,8 @@
 package provider
 
 import (
-	"terraform-provider-msgraph/internal/services/approleassignment"
-	"terraform-provider-msgraph/internal/services/groups"
+	"github.com/pubg/terraform-provider-msgraph/internal/services/approleassignment"
+	"github.com/pubg/terraform-provider-msgraph/internal/services/groups"
 )
 
 func SupportedServices() []ServiceRegistration {
