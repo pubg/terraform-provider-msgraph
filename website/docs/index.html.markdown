@@ -1,8 +1,6 @@
 ---
 layout: "msgraph"
 page_title: "Provider: MsGraph"
-description: |-
-  Use the Amazon Web Services (AWS) provider to interact with the many resources supported by AWS. You must configure the provider with the proper credentials before you can use it.
 ---
 
 # terraform-provider-msgraph
@@ -18,7 +16,9 @@ Microsoft don't recommend that you use them in your production apps. [MS Doc Her
 But, This API is the only way to managing AzureAD apps with GitOps style.
 
 ### Set up Custom Terraform Provider
-1. Add the providers. For example,
+
+Same as AzureAD Provider
+
 ```terraform
 terraform {
   ...
@@ -32,16 +32,41 @@ terraform {
 
     msgraph = {
       source = "pubg/msgraph"
-      version = "0.0.6"
     }
   }
 }
 
+# Access via ClientSecret 
+data "vault_generic_secret" "azure_credential_root" {
+  path = "secret/serviceprincipal/root"
+}
+        
 provider "azuread" {
-  use_microsoft_graph = true
+  alias = "tenant1"        
+        
+  tenant_id     = data.vault_generic_secret.azure_credential_root.data["tenant_id"]
+  client_id     = data.vault_generic_secret.azure_credential_root.data["client_id"]
+  client_secret = data.vault_generic_secret.azure_credential_root.data["client_secret"]
 }
 
 provider "msgraph" {
-  use_microsoft_graph = true
+  alias = "tenant1"
+          
+  tenant_id     = data.vault_generic_secret.azure_credential_root.data["tenant_id"]
+  client_id     = data.vault_generic_secret.azure_credential_root.data["client_id"]
+  client_secret = data.vault_generic_secret.azure_credential_root.data["client_secret"]
 }
+
+# Access via AzureCLI
+provider "azuread" {
+  alias = "tenant2"
+  use_cli = true
+}
+
+provider "msgraph" {
+  alias = "tenant2"
+  use_cli = true
+}
+
+...
 ```
