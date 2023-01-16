@@ -3,7 +3,7 @@ layout: "msgraph"
 subcategory: "EnterpriseApplication"
 page_title: "MsGraph: msgraph_app_role_assignment"
 description: |-
-  Assign user or groups to EnterpriseApplication
+  Assign user or groups to EnterpriseApplication(ServicePrincipal)
 ---
 
 # Resource: msgraph_app_role_assignment

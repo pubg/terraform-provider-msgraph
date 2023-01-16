@@ -10,14 +10,38 @@ provider "msgraph" {
   use_cli = true
 }
 
-data "msgraph_groups" "groups" {
-  group_id = "d2ec52ab-f8ec-463a-ba99-7561719b984b"
+resource "msgraph_app_redirect_uris" "uris" {
+  app_object_id = "c52d8e63-4117-4b84-8856-879967d31606"
+  #  redirect_uris {
+  #    url  = "https://contoso.com"
+  #    type = "Web"
+  #  }
+  redirect_uris {
+    url  = "https://contoso2.com"
+    type = "Web"
+  }
+  redirect_uris {
+    url  = "https://contoso3.com"
+    type = "Web"
+  }
+
+  tolerance_override = true
 }
 
-output "group_ids" {
-  value = data.msgraph_groups.groups.group_ids
-}
+resource "msgraph_app_redirect_uris" "uris2" {
+  app_object_id = "c52d8e63-4117-4b84-8856-879967d31606"
+  #  redirect_uris {
+  #    url  = "https://contoso.com"
+  #    type = "Web"
+  #  }
+  redirect_uris {
+    url  = "https://contoso2.com"
+    type = "Web"
+  }
+  redirect_uris {
+    url  = "https://contoso4.com"
+    type = "Web"
+  }
 
-output "user_ids" {
-  value = data.msgraph_groups.groups.user_ids
+  tolerance_override = true
 }

@@ -35,6 +35,7 @@ type Client struct {
 		MsGraphClient *msgraph.ServicePrincipalsClient
 	}
 	GroupsClient *msgraph.GroupsClient
+	AppClient    *msgraph.ApplicationsClient
 }
 
 func (client *Client) build(ctx context.Context, o *common.ClientOptions) error { //nolint:unparam
@@ -45,10 +46,12 @@ func (client *Client) build(ctx context.Context, o *common.ClientOptions) error 
 	client.ServicePrincipalClient.AadClient = &spAadClient
 	client.ServicePrincipalClient.MsGraphClient = msgraph.NewServicePrincipalsClient(o.TenantID)
 	client.GroupsClient = msgraph.NewGroupsClient(o.TenantID)
+	client.AppClient = msgraph.NewApplicationsClient(o.TenantID)
 
 	o.ConfigureAadClient(&client.ServicePrincipalClient.AadClient.Client)
 	o.ConfigureMsGraphClient(&client.ServicePrincipalClient.MsGraphClient.BaseClient)
 	o.ConfigureMsGraphClient(&client.GroupsClient.BaseClient)
+	o.ConfigureMsGraphClient(&client.AppClient.BaseClient)
 
 	if client.EnableMsGraphBeta {
 		// Acquire an access token upfront so we can decode and populate the JWT claims

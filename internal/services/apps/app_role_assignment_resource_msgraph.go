@@ -1,4 +1,4 @@
-package approleassignment
+package apps
 
 import (
 	"context"
