@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/services/graphrbac/1.6/graphrbac"
 	"github.com/manicminer/hamilton/auth"
@@ -36,6 +37,9 @@ type Client struct {
 	}
 	GroupsClient *msgraph.GroupsClient
 	AppClient    *msgraph.ApplicationsClient
+
+	EnableResourceMutex bool
+	ResourceMutex       *sync.Mutex
 }
 
 func (client *Client) build(ctx context.Context, o *common.ClientOptions) error { //nolint:unparam

@@ -68,5 +68,10 @@ provider "msgraph" {
   use_cli = true
 }
 
+# Enable clideside lock for avoiding resource ownership conflict (default: false)
+provider "msgraph" {
+  use_cli = true
+  use_clientside_lock = true
+}
 ...
 ```

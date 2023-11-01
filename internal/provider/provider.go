@@ -161,6 +161,13 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_DISABLE_TERRAFORM_PARTNER_ID", false),
 				Description: "Disable the Terraform Partner ID which is used if a custom `partner_id` isn't specified.",
 			},
+
+			"use_clientside_lock": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Use a client-side lock for all resources to prevent concurrent modification.",
+			},
 		},
 
 		ResourcesMap:   resources,
@@ -216,22 +223,25 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			partnerId = terraformPartnerId
 		}
 
-		return buildClient(ctx, p, authConfig, aadBuilder, partnerId)
+		useClientsideLock := d.Get("use_clientside_lock").(bool)
+
+		return buildClient(ctx, p, authConfig, aadBuilder, partnerId, useClientsideLock)
 	}
 }
 
 // TODO: v2.0 pull out authentication.Builder and derived configuration
-func buildClient(ctx context.Context, p *schema.Provider, authConfig *auth.Config, b *authentication.Builder, partnerId string) (*clients.Client, diag.Diagnostics) {
+func buildClient(ctx context.Context, p *schema.Provider, authConfig *auth.Config, b *authentication.Builder, partnerId string, enableClientsideLock bool) (*clients.Client, diag.Diagnostics) {
 	aadConfig, err := b.Build()
 	if err != nil {
 		return nil, tf.ErrorDiagF(err, "Building AzureAD Client")
 	}
 
 	clientBuilder := clients.ClientBuilder{
-		AuthConfig:       authConfig,
-		AadAuthConfig:    aadConfig,
-		PartnerID:        partnerId,
-		TerraformVersion: p.TerraformVersion,
+		AuthConfig:           authConfig,
+		AadAuthConfig:        aadConfig,
+		PartnerID:            partnerId,
+		TerraformVersion:     p.TerraformVersion,
+		EnableClientsideLock: enableClientsideLock,
 	}
 
 	stopCtx, ok := schema.StopContext(ctx) //nolint:SA1019

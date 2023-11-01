@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/manicminer/hamilton/auth"
 	"github.com/manicminer/hamilton/environments"
@@ -14,11 +15,12 @@ import (
 )
 
 type ClientBuilder struct {
-	AuthConfig       *auth.Config
-	AadAuthConfig    *authentication.Config
-	EnableMsGraph    bool
-	PartnerID        string
-	TerraformVersion string
+	AuthConfig           *auth.Config
+	AadAuthConfig        *authentication.Config
+	EnableMsGraph        bool
+	PartnerID            string
+	TerraformVersion     string
+	EnableClientsideLock bool
 }
 
 // Build is a helper method which returns a fully instantiated *Client based on the auth Config's current settings.
@@ -47,6 +49,11 @@ func (b *ClientBuilder) Build(ctx context.Context) (*Client, error) {
 		TerraformVersion: b.TerraformVersion,
 
 		AuthenticatedAsAServicePrincipal: b.AadAuthConfig.AuthenticatedAsAServicePrincipal,
+	}
+
+	if b.EnableClientsideLock {
+		client.EnableResourceMutex = true
+		client.ResourceMutex = &sync.Mutex{}
 	}
 
 	if b.AuthConfig != nil {

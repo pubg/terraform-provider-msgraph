@@ -8,6 +8,7 @@ terraform {
 
 provider "msgraph" {
   use_cli = true
+  use_clientside_lock = true
 }
 
 resource "msgraph_app_redirect_uris" "uris" {
