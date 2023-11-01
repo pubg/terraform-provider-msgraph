@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/manicminer/hamilton/msgraph"
 	"github.com/manicminer/hamilton/odata"
 	"github.com/pubg/terraform-provider-msgraph/internal/clients"
 	"github.com/pubg/terraform-provider-msgraph/internal/tf"
@@ -54,68 +55,53 @@ func appRedirectUris() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 			},
+
+			"retry_count": {
+				Description: "Retry count for update application",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     10,
+			},
 		},
 	}
 }
 
+type RedirectUrlType string
+
+const (
+	Web             = RedirectUrlType("Web")
+	InstalledClient = RedirectUrlType("InstalledClient")
+	Spa             = RedirectUrlType("Spa")
+)
+
+const UrlOverrodeDetectedMessage = "Conflict detected: Some urls are already exist in target application, It may occur resource ownership conflict. If you want ignore this error, enable `tolerance_override` to true"
+
 func appRedirectUrisResourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*clients.Client).AppClient
+	providerClient := meta.(*clients.Client)
+	client := providerClient.AppClient
 
-	appId := d.Get("app_object_id").(string)
-
-	app, _, err := client.Get(ctx, appId, odata.Query{})
-	if err != nil {
-		return tf.ErrorDiagF(err, "Application not found, app_id(%s)", appId)
+	if providerClient.EnableResourceMutex {
+		providerClient.ResourceMutex.Lock()
+		defer providerClient.ResourceMutex.Unlock()
 	}
 
 	if !d.HasChange("redirect_uris") {
 		return appRedirectUrisResourceRead(ctx, d, meta)
 	}
-
-	toleranceOverride := d.Get("tolerance_override").(bool)
-
 	oldRaw, newRaw := d.GetChange("redirect_uris")
-	oldWeb, oldPub, oldSpa := classifyUrls(oldRaw)
-	newWeb, newPub, newSpa := classifyUrls(newRaw)
+	appId := d.Get("app_object_id").(string)
+	toleranceOverride := d.Get("tolerance_override").(bool)
+	retryCount := d.Get("retry_count").(int)
 
-	var webUrls = deRefSlice(app.Web.RedirectUris)
-	webUrls, isOverrode := applyUrls(webUrls, oldWeb, newWeb)
-	if !toleranceOverride && isOverrode {
-		return diag.Errorf("Conflict detected: Some urls are already exist in target application, It may occur resource ownership conflict. If you want ignore this error, enable `tolerance_override` to true")
+	var diagnostics diag.Diagnostics
+	for i := 0; i < retryCount; i++ {
+		diagnostics = updateTerraformResource(ctx, appId, client, oldRaw, newRaw, toleranceOverride)
+		if diagnostics == nil {
+			break
+		}
 	}
-	app.Web.RedirectUris = toRefSlice(webUrls)
-
-	var pubUrls = deRefSlice(app.PublicClient.RedirectUris)
-	pubUrls, isOverrode = applyUrls(pubUrls, oldPub, newPub)
-	if !toleranceOverride && isOverrode {
-		return diag.Errorf("Conflict detected: Some urls are already exist in target application, It may occur resource ownership conflict. If you want ignore this error, enable `tolerance_override` to true")
-	}
-	app.PublicClient.RedirectUris = toRefSlice(pubUrls)
-
-	var spaUrls = deRefSlice(app.Spa.RedirectUris)
-	spaUrls, isOverrode = applyUrls(spaUrls, oldSpa, newSpa)
-	if !toleranceOverride && isOverrode {
-		return diag.Errorf("Conflict detected: Some urls are already exist in target application, It may occur resource ownership conflict. If you want ignore this error, enable `tolerance_override` to true")
-	}
-	app.Spa.RedirectUris = toRefSlice(spaUrls)
-
-	if _, err = client.Update(ctx, *app); err != nil {
-		return tf.ErrorDiagF(err, "Application update failed, app_id(%s)", appId)
-	}
-
-	// Check Application updated to desired state
-	updatedApp, _, err := client.Get(ctx, appId, odata.Query{})
-	if err != nil {
-		return tf.ErrorDiagF(err, "Application not found, app_id(%s)", appId)
-	}
-	if !equalsSlice(deRefSlice(app.Web.RedirectUris), deRefSlice(updatedApp.Web.RedirectUris)) {
-		return diag.Errorf("Updated Application Web urls are not desired value, desired: %v, actual: %v", *app.Web.RedirectUris, *updatedApp.Web.RedirectUris)
-	}
-	if !equalsSlice(deRefSlice(app.PublicClient.RedirectUris), deRefSlice(updatedApp.PublicClient.RedirectUris)) {
-		return diag.Errorf("Updated Application InstalledClient urls are not desired value, desired: %v, actual: %v", *app.PublicClient.RedirectUris, *updatedApp.PublicClient.RedirectUris)
-	}
-	if !equalsSlice(deRefSlice(app.Spa.RedirectUris), deRefSlice(updatedApp.Spa.RedirectUris)) {
-		return diag.Errorf("Updated Application Spa urls are not desired value, desired: %v, actual: %v", *app.Spa.RedirectUris, *updatedApp.Spa.RedirectUris)
+	if diagnostics != nil {
+		return diagnostics
 	}
 
 	return appRedirectUrisResourceRead(ctx, d, meta)
@@ -136,29 +122,48 @@ func appRedirectUrisResourceRead(ctx context.Context, d *schema.ResourceData, me
 }
 
 func appRedirectUrisResourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*clients.Client).AppClient
+	providerClient := meta.(*clients.Client)
+	client := providerClient.AppClient
 
-	appId := d.Get("app_object_id").(string)
-
-	app, _, err := client.Get(ctx, appId, odata.Query{})
-	if err != nil {
-		return tf.ErrorDiagF(err, "Cannot find target Application app_id(%s)", appId)
+	if providerClient.EnableResourceMutex {
+		providerClient.ResourceMutex.Lock()
+		defer providerClient.ResourceMutex.Unlock()
 	}
 
+	appId := d.Get("app_object_id").(string)
 	rawUris := d.Get("redirect_uris")
-	oldWeb, oldPub, oldSpa := classifyUrls(rawUris)
+	toleranceOverride := d.Get("tolerance_override").(bool)
+	retryCount := d.Get("retry_count").(int)
 
-	var webUrls = deRefSlice(app.Web.RedirectUris)
-	webUrls, _ = applyUrls(webUrls, oldWeb, nil)
-	app.Web.RedirectUris = toRefSlice(webUrls)
+	var diagnostics diag.Diagnostics
+	for i := 0; i < retryCount; i++ {
+		diagnostics = updateTerraformResource(ctx, appId, client, rawUris, nil, toleranceOverride)
+		if diagnostics == nil {
+			break
+		}
+	}
+	if diagnostics != nil {
+		return diagnostics
+	}
 
-	var pubUrls = deRefSlice(app.PublicClient.RedirectUris)
-	pubUrls, _ = applyUrls(pubUrls, oldPub, nil)
-	app.PublicClient.RedirectUris = toRefSlice(pubUrls)
+	return nil
+}
 
-	var spaUrls = deRefSlice(app.Spa.RedirectUris)
-	spaUrls, _ = applyUrls(spaUrls, oldSpa, nil)
-	app.Spa.RedirectUris = toRefSlice(spaUrls)
+func updateTerraformResource(ctx context.Context, appId string, client *msgraph.ApplicationsClient, oldRaw any, newRaw any, toleranceOverride bool) diag.Diagnostics {
+	app, _, err := client.Get(ctx, appId, odata.Query{})
+	if err != nil {
+		return tf.ErrorDiagF(err, "Application not found, app_id(%s)", appId)
+	}
+
+	if isOverrode := applyUrlsToApplication(Web, app, oldRaw, newRaw); !toleranceOverride && isOverrode {
+		return diag.Errorf(UrlOverrodeDetectedMessage)
+	}
+	if isOverrode := applyUrlsToApplication(InstalledClient, app, oldRaw, newRaw); !toleranceOverride && isOverrode {
+		return diag.Errorf(UrlOverrodeDetectedMessage)
+	}
+	if isOverrode := applyUrlsToApplication(Spa, app, oldRaw, newRaw); !toleranceOverride && isOverrode {
+		return diag.Errorf(UrlOverrodeDetectedMessage)
+	}
 
 	if _, err = client.Update(ctx, *app); err != nil {
 		return tf.ErrorDiagF(err, "Application update failed, app_id(%s)", appId)
@@ -169,38 +174,94 @@ func appRedirectUrisResourceDelete(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		return tf.ErrorDiagF(err, "Application not found, app_id(%s)", appId)
 	}
-	if !equalsSlice(deRefSlice(app.Web.RedirectUris), deRefSlice(updatedApp.Web.RedirectUris)) {
-		return diag.Errorf("Updated Application Web urls are not desired value, desired: %v, actual: %v", *app.Web.RedirectUris, *updatedApp.Web.RedirectUris)
+	if diagnostics := checkApplicationIsDesiredStateByType(Web, app, updatedApp); diagnostics != nil {
+		return diagnostics
 	}
-	if !equalsSlice(deRefSlice(app.PublicClient.RedirectUris), deRefSlice(updatedApp.PublicClient.RedirectUris)) {
-		return diag.Errorf("Updated Application InstalledClient urls are not desired value, desired: %v, actual: %v", *app.PublicClient.RedirectUris, *updatedApp.PublicClient.RedirectUris)
+	if diagnostics := checkApplicationIsDesiredStateByType(InstalledClient, app, updatedApp); diagnostics != nil {
+		return diagnostics
 	}
-	if !equalsSlice(deRefSlice(app.Spa.RedirectUris), deRefSlice(updatedApp.Spa.RedirectUris)) {
-		return diag.Errorf("Updated Application Spa urls are not desired value, desired: %v, actual: %v", *app.Spa.RedirectUris, *updatedApp.Spa.RedirectUris)
+	if diagnostics := checkApplicationIsDesiredStateByType(Spa, app, updatedApp); diagnostics != nil {
+		return diagnostics
 	}
-
 	return nil
 }
 
-func classifyUrls(rawValue any) (web []string, pub []string, spa []string) {
-	if rawValue == nil {
-		return
+func checkApplicationIsDesiredStateByType(urlType RedirectUrlType, desire *msgraph.Application, actual *msgraph.Application) diag.Diagnostics {
+	desireUrls := getUrlsByTypeFromApplication(urlType, desire)
+	actualUrls := getUrlsByTypeFromApplication(urlType, actual)
+	if !equalsSlice(desireUrls, actualUrls) {
+		return diag.Errorf("Updated Application %s urls are not desired value, desired: %v, actual: %v", urlType, desireUrls, actualUrls)
 	}
+	return nil
+}
 
-	for _, rawUrl := range rawValue.([]any) {
-		urlSpec := rawUrl.(map[string]any)
-		url := urlSpec["url"].(string)
-		switch urlSpec["type"] {
-		case "Web":
-			web = append(web, url)
-		case "InstalledClient":
-			pub = append(pub, url)
-		case "Spa":
-			spa = append(spa, url)
+// Returns url overrode detected
+func applyUrlsToApplication(urlType RedirectUrlType, app *msgraph.Application, oldRedirectUris any, newRedirectUris any) bool {
+	appUrls := getUrlsByTypeFromApplication(urlType, app)
+	oldUrls := getUrlsByTypeFromTerraform(urlType, oldRedirectUris)
+	newUrls := getUrlsByTypeFromTerraform(urlType, newRedirectUris)
+
+	urls, isOverrode := applyUrls(appUrls, oldUrls, newUrls)
+
+	setUrlsByTypeToApplication(urlType, app, urls)
+	return isOverrode
+}
+
+func getUrlsByTypeFromApplication(urlType RedirectUrlType, app *msgraph.Application) []string {
+	if urlType == Web {
+		if app.Web.RedirectUris == nil {
+			return nil
+		}
+		return *app.Web.RedirectUris
+	} else if urlType == InstalledClient {
+
+		if app.PublicClient.RedirectUris == nil {
+			return nil
+		}
+		return *app.PublicClient.RedirectUris
+	} else {
+		if app.Spa.RedirectUris == nil {
+			return nil
+		}
+		return *app.Spa.RedirectUris
+	}
+}
+
+func setUrlsByTypeToApplication(urlType RedirectUrlType, app *msgraph.Application, urls []string) {
+	if urlType == Web {
+		if urls == nil {
+			app.Web.RedirectUris = nil
+		} else {
+			app.Web.RedirectUris = &urls
+		}
+	} else if urlType == InstalledClient {
+		if urls == nil {
+			app.PublicClient.RedirectUris = nil
+		} else {
+			app.PublicClient.RedirectUris = &urls
+		}
+	} else {
+		if urls == nil {
+			app.Spa.RedirectUris = nil
+		} else {
+			app.Spa.RedirectUris = &urls
 		}
 	}
+}
 
-	return
+func getUrlsByTypeFromTerraform(urlType RedirectUrlType, rawValue any) []string {
+	if rawValue == nil {
+		return nil
+	}
+
+	var result []string
+	for _, rawUrl := range rawValue.([]any) {
+		urlSpec := rawUrl.(map[string]any)
+		if urlSpec["type"].(string) == string(urlType) {
+			result = append(result, urlSpec["url"].(string))
+		}
+	}
+	return result
 }
 
 func applyUrls(currentUrls []string, oldUrls []string, newUrls []string) (urls []string, overrode bool) {
@@ -247,18 +308,4 @@ func equalsSlice(a, b []string) bool {
 	}
 
 	return true
-}
-
-func deRefSlice(s *[]string) []string {
-	if s == nil {
-		return nil
-	}
-	return *s
-}
-
-func toRefSlice(s []string) *[]string {
-	if s == nil {
-		return nil
-	}
-	return &s
 }
