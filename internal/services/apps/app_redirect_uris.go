@@ -50,10 +50,10 @@ func appRedirectUris() *schema.Resource {
 			},
 
 			"tolerance_override": {
-				Description: "If some urls are already exist in target application, It may occur resource ownership conflict. If you want ignore this error, enable `tolerance_override` to true",
+				Description: "If some urls are already exist in target application, It may occur resource ownership conflict. If you want ignore this error, enable `tolerance_override` to true (Default: true)",
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				Default:     true,
 			},
 
 			"retry_count": {
