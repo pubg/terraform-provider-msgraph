@@ -14,10 +14,7 @@ But, This API is the only way to managing AzureAD apps with GitOps style.
 1. Add the providers. For example,
 ```terraform
 terraform {
-  ...
   required_providers {
-    ...
-
     azuread = {
       source  = "hashicorp/azuread"
       version = "1.6.0"
@@ -31,11 +28,11 @@ terraform {
 }
 
 provider "azuread" {
-  use_microsoft_graph = true
+  ...
 }
 
 provider "msgraph" {
-  use_microsoft_graph = true
+  ...
 }
 ```
 2. Run `terraform init`

@@ -9,13 +9,11 @@ import (
 	"github.com/manicminer/hamilton/auth"
 	"github.com/manicminer/hamilton/environments"
 
-	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/pubg/terraform-provider-msgraph/internal/clients"
-	"github.com/pubg/terraform-provider-msgraph/internal/tf"
 )
 
 // Microsoft’s Terraform Partner ID is this specific GUID
@@ -181,7 +179,7 @@ func Provider() *schema.Provider {
 
 func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		environment, aadEnvironment := environment(d.Get("environment").(string))
+		environment, _ := environment(d.Get("environment").(string))
 
 		var authConfig = &auth.Config{
 			Environment:            environment,
@@ -197,24 +195,6 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 			MsiEndpoint:            d.Get("msi_endpoint").(string),
 		}
 
-		aadBuilder := &authentication.Builder{
-			ClientID:           d.Get("client_id").(string),
-			ClientSecret:       d.Get("client_secret").(string),
-			TenantID:           d.Get("tenant_id").(string),
-			MetadataHost:       d.Get("metadata_host").(string),
-			Environment:        aadEnvironment,
-			MsiEndpoint:        d.Get("msi_endpoint").(string),
-			ClientCertPassword: d.Get("client_certificate_password").(string),
-			ClientCertPath:     d.Get("client_certificate_path").(string),
-
-			// Feature Toggles
-			SupportsClientCertAuth:         true,
-			SupportsClientSecretAuth:       true,
-			SupportsManagedServiceIdentity: d.Get("use_msi").(bool),
-			SupportsAzureCliToken:          d.Get("use_cli").(bool),
-			TenantOnly:                     true,
-		}
-
 		// only one pid can be interpreted currently
 		// hence, send partner ID if present, otherwise send Terraform GUID
 		// unless users have opted out
@@ -225,20 +205,14 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		useClientsideLock := d.Get("use_clientside_lock").(bool)
 
-		return buildClient(ctx, p, authConfig, aadBuilder, partnerId, useClientsideLock)
+		return buildClient(ctx, p, authConfig, partnerId, useClientsideLock)
 	}
 }
 
 // TODO: v2.0 pull out authentication.Builder and derived configuration
-func buildClient(ctx context.Context, p *schema.Provider, authConfig *auth.Config, b *authentication.Builder, partnerId string, enableClientsideLock bool) (*clients.Client, diag.Diagnostics) {
-	aadConfig, err := b.Build()
-	if err != nil {
-		return nil, tf.ErrorDiagF(err, "Building AzureAD Client")
-	}
-
+func buildClient(ctx context.Context, p *schema.Provider, authConfig *auth.Config, partnerId string, enableClientsideLock bool) (*clients.Client, diag.Diagnostics) {
 	clientBuilder := clients.ClientBuilder{
 		AuthConfig:           authConfig,
-		AadAuthConfig:        aadConfig,
 		PartnerID:            partnerId,
 		TerraformVersion:     p.TerraformVersion,
 		EnableClientsideLock: enableClientsideLock,

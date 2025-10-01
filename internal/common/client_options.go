@@ -9,8 +9,6 @@ import (
 	"github.com/manicminer/hamilton/environments"
 	"github.com/manicminer/hamilton/msgraph"
 
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/hashicorp/go-azure-helpers/sender"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/meta"
 
 	"github.com/pubg/terraform-provider-msgraph/version"
@@ -18,13 +16,9 @@ import (
 
 type ClientOptions struct {
 	Environment environments.Environment
-	TenantID    string
 
 	PartnerID        string
 	TerraformVersion string
-
-	AadGraphAuthorizer autorest.Authorizer // TODO: delete in v2.0
-	AadGraphEndpoint   string              // TODO: delete in v2.0
 
 	MsGraphAuthorizer auth.Authorizer // TODO: rename in v2.0
 }
@@ -35,12 +29,6 @@ func (o ClientOptions) ConfigureMsGraphClient(c *msgraph.Client) {
 		c.Endpoint = o.Environment.MsGraph.Endpoint
 		c.UserAgent = o.UserAgent(c.UserAgent)
 	}
-}
-
-func (o ClientOptions) ConfigureAadClient(ar *autorest.Client) {
-	ar.Authorizer = o.AadGraphAuthorizer
-	ar.Sender = sender.BuildSender("AzureAD")
-	ar.UserAgent = o.UserAgent(ar.UserAgent)
 }
 
 func (o ClientOptions) UserAgent(sdkUserAgent string) (userAgent string) {

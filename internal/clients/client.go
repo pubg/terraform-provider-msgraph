@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Azure/azure-sdk-for-go/services/graphrbac/1.6/graphrbac"
 	"github.com/manicminer/hamilton/auth"
 	"github.com/manicminer/hamilton/environments"
 	"github.com/manicminer/hamilton/msgraph"
@@ -19,20 +18,15 @@ import (
 // Client contains the handles to all the specific Azure AD resource classes' respective clients
 type Client struct {
 	Environment environments.Environment
-	TenantID    string
-	ClientID    string
-	ObjectID    string
 	Claims      auth.Claims
 
 	TerraformVersion string
 
-	AuthenticatedAsAServicePrincipal bool
-	EnableMsGraphBeta                bool // TODO: remove in v2.0
+	EnableMsGraphBeta bool // TODO: remove in v2.0
 
 	StopContext context.Context
 
 	ServicePrincipalClient struct {
-		AadClient     *graphrbac.ServicePrincipalsClient
 		MsGraphClient *msgraph.ServicePrincipalsClient
 	}
 	GroupsClient *msgraph.GroupsClient
@@ -45,17 +39,6 @@ type Client struct {
 func (client *Client) build(ctx context.Context, o *common.ClientOptions) error { //nolint:unparam
 	autorest.Count429AsRetry = false
 	client.StopContext = ctx
-
-	spAadClient := graphrbac.NewServicePrincipalsClientWithBaseURI(o.AadGraphEndpoint, o.TenantID)
-	client.ServicePrincipalClient.AadClient = &spAadClient
-	client.ServicePrincipalClient.MsGraphClient = msgraph.NewServicePrincipalsClient(o.TenantID)
-	client.GroupsClient = msgraph.NewGroupsClient(o.TenantID)
-	client.AppClient = msgraph.NewApplicationsClient(o.TenantID)
-
-	o.ConfigureAadClient(&client.ServicePrincipalClient.AadClient.Client)
-	o.ConfigureMsGraphClient(&client.ServicePrincipalClient.MsGraphClient.BaseClient)
-	o.ConfigureMsGraphClient(&client.GroupsClient.BaseClient)
-	o.ConfigureMsGraphClient(&client.AppClient.BaseClient)
 
 	if client.EnableMsGraphBeta {
 		// Acquire an access token upfront so we can decode and populate the JWT claims
@@ -70,6 +53,18 @@ func (client *Client) build(ctx context.Context, o *common.ClientOptions) error 
 		if client.Claims.ObjectId == "" {
 			return fmt.Errorf("parsing claims in access token: oid claim is empty")
 		}
+		if client.Claims.TenantId == "" {
+			return fmt.Errorf("parsing claims in access token: tid claim is empty")
+		}
 	}
+
+	client.ServicePrincipalClient.MsGraphClient = msgraph.NewServicePrincipalsClient(client.Claims.TenantId)
+	client.GroupsClient = msgraph.NewGroupsClient(client.Claims.TenantId)
+	client.AppClient = msgraph.NewApplicationsClient(client.Claims.TenantId)
+
+	o.ConfigureMsGraphClient(&client.ServicePrincipalClient.MsGraphClient.BaseClient)
+	o.ConfigureMsGraphClient(&client.GroupsClient.BaseClient)
+	o.ConfigureMsGraphClient(&client.AppClient.BaseClient)
+
 	return nil
 }
